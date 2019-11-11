@@ -1,3 +1,5 @@
+import numpy as np
+
 def get_neuron(name, network):
     """
     Returns a specific pylgn.Neuron, from edog_simulations repo on hitb
