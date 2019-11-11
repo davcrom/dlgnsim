@@ -4,43 +4,8 @@ import quantities as pq
 
 import matplotlib.pyplot as plt
 
+from basicneuron import Neuron
 # create some trivial neuron reponse model
-class Neuron(object):
-        
-    def __init__(self, x=1, y=1, m=0.1):
-        self.x = x
-        self.y = y
-        self.m = m
-        
-    def response(self):
-        def evaluate(s):
-            return - self.m * (s - self.x) ** 2 + self.y
-        return evaluate
-        
-    def dr(self):
-        def evaluate(s):
-            return -2 * self.m * (s - self.x)
-        return evaluate
-        
-    def d2r(self):
-        def evaluate(s):
-            return -2 * self.m
-        return evaluate
-        
-    def set_stimulus(self, s):
-        self.s = s
-        
-    def get_response(self):
-        response = self.response()
-        return response(self.s)
-    
-    def get_dr(self):
-        dr = self.dr()
-        return dr(self.s)
-        
-    def get_d2R(self):
-        d2r = self.d2r()
-        return d2r(self.s)
         
 # create Newton's method object class
 class Newton(object):
