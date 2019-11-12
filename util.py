@@ -35,18 +35,26 @@ def ratio_of_gaussians(x, kc, wc, ks, ws):
         ks: gain surround
         ws: width surround (sigma)
     """
+    
     Lc = erf(x/wc) ** 2
     Ls = erf(x/ws) ** 2
     y = kc*Lc / (1 + ks*Ls)
     return y
     
 def himmelblau(p):
+    """
+    Himmelblau's function for testing optimization algorithms.
+    """
+    
     x, y = p
     a = x*x + y - 11
     b = x + y*y - 7
     return a*a + b*b
 
 class Newton(object):
+    """
+    A toy example of newton's method for root finding in a 1D function.
+    """
     
     def __init__(self, f, df, x0, max_iter=200, eps=np.finfo('float').eps):
         
