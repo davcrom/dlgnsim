@@ -1,8 +1,11 @@
 import numpy as np
 
+from scipy.special import erf
+
 def get_neuron(name, network):
     """
-    Returns a specific pylgn.Neuron, from edog_simulations repo on hitb
+    From the Mobarhan edog_simulations repo on github.
+    Returns a specific pylgn.Neuron
 
     Parameters
     ----------
@@ -23,42 +26,25 @@ def get_neuron(name, network):
         raise ValueError("more than one Relay cell found in network")
     return neuron
 
-class Neuron(object):
-        
-    def __init__(self, x=1, y=1, m=0.1):
-        self.x = x
-        self.y = y
-        self.m = m
-        
-    def response(self):
-        def evaluate(s):
-            return - self.m * (s - self.x) ** 2 + self.y
-        return evaluate
-        
-    def dr(self):
-        def evaluate(s):
-            return -2 * self.m * (s - self.x)
-        return evaluate
-        
-    def d2r(self):
-        def evaluate(s):
-            return -2 * self.m
-        return evaluate
-        
-    def set_stimulus(self, s):
-        self.s = s
-        
-    def get_response(self):
-        response = self.response()
-        return response(self.s)
+def ratio_of_gaussians(x, kc, wc, ks, ws):
+    """
+    From djd.model.py
+    Ratio of Gaussians model (Cavanaugh et al. 2002 J Neurophysiol)
+        kc: gain center
+        wc: width center (sigma)
+        ks: gain surround
+        ws: width surround (sigma)
+    """
+    Lc = erf(x/wc) ** 2
+    Ls = erf(x/ws) ** 2
+    y = kc*Lc / (1 + ks*Ls)
+    return y
     
-    def get_dr(self):
-        dr = self.dr()
-        return dr(self.s)
-        
-    def get_d2R(self):
-        d2r = self.d2r()
-        return d2r(self.s)
+def himmelblau(p):
+    x, y = p
+    a = x*x + y - 11
+    b = x + y*y - 7
+    return a*a + b*b
 
 class Newton(object):
     
