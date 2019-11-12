@@ -3,30 +3,31 @@ import numpy as np
 import quantities as pq
 
 import matplotlib.pyplot as plt
+from scipy.optimize import newton, minimize
 
-from util import Neuron, Newton
+from network_config import *
+from util import *
 
-# initialize a stimulus space
-stim = np.linspace(0, 10, 100)
-# create a neuron
-neuron = Neuron(x=3, y=1, m=0.01)
-
-# plot responses across stimulus space
-fig, ax = plt.subplots()
-ax.set_xlabel("Stimulus parameter")
-ax.set_label("Neuron response")
-for s in stim:
-    neuron.set_stimulus(s)
-    ax.scatter(s, neuron.get_response(), color='black')
+def spotstim_response(diameter, fb_weight):
     
-# instantiate iterator for neuron response derivatives
-s0 = 0 # pick an initial stimulus value
-newton = Newton(neuron.dr(), neuron.d2r(), s0)
-newton.iterate()
-print("Optimal response at s = %01f" % newton.x)
-neuron.set_stimulus(newton.x)
-ax.scatter(newton.x, neuron.get_response(), s=50, color='red')
-            
+    network = create_staticnewtwork(fb_weight=fb_weight)    
+    stimulus = pylgn.stimulus.create_flashing_spot_ft(
+        patch_diameter=diameter * pq.deg,
+        duration=1 * pq.ms,
+        )
+    network.set_stimulus(stimulus)
+    relay = get_neuron('Relay', network)[0]
+    network.compute_response(relay)
+    response = relay.center_response[0].item()
                 
-                
-        
+    return -1 * response # return negative in order to find peak            
+
+# perform optimization for 3 different excitatory feedback weight strengths
+# note: scipy.optimize.newton fails to converge
+# note: 'Newton-CG' method for minimize requires Jacobian vector
+d0 = 5
+min0 = minimize(spotstim_response, d0, args=(0,), method='CG')
+min1 = minimize(spotstim_response, d0, args=(0.5,), method='CG')
+min2 = minimize(spotstim_response, d0, args=(1,), method='CG')
+
+# note: qualitatively reproduces fig7 (top left) from Mobarhan et al. (2018)
