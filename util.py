@@ -1,3 +1,7 @@
+'''
+Helper functions for running simulations with PyLGN.
+'''
+
 import numpy as np
 
 from scipy.special import erf
