@@ -1,3 +1,7 @@
+'''
+Functions for creating and connecting PyLGN networks.
+'''
+
 import quantities as pq
 from matplotlib import pyplot as plt
 
@@ -8,12 +12,30 @@ import pylgn.tools as tools
 
 from util import *
 
-def create_staticnewtwork(fb_weight=0):
+def create_staticnewtwork(input_params={}):
+    
+    # default parameters
+    params = {'nr':7, 'nt':1, 'dt':1.*pq.ms, 'dr':0.1*pq.deg,
+              'A_g':1., 'a_g':0.62*pq.deg, 'B_g':0.85, 'b_g':1.26*pq.deg,
+              'w_rg':1., 'A_rg':1., 'a_rg':0.1*pq.deg,
+              'w_rig':1, 'A_rig':-0.5, 'a_rig':0.3*pq.deg,
+              'w_rc_ex':1, 'A_rc_ex':0.5, 'a_rc_ex':0.83*pq.deg,
+              'w_rc_in':1, 'A_rc_in':-0.5, 'a_rc_in':0.83*pq.deg,
+              }
+    
+    # replace defualt parameters with those passed by user
+    for p in input_params:
+        params[p] = input_params[p]
     
     # network
     network = pylgn.Network()
-    integrator = network.create_integrator(nt=1, nr=7, dt=1*pq.ms, dr=0.1*pq.deg)
-    
+    integrator = network.create_integrator(
+        nt=params['nt'], 
+        nr=params['nr'], 
+        dt=params['dt'], 
+        dr=params['dr']
+        )
+        
     # neurons
     ganglion = network.create_ganglion_cell()
     relay = network.create_relay_cell()
@@ -21,24 +43,29 @@ def create_staticnewtwork(fb_weight=0):
     
     # RGC impulse-response
     delta_t = tpl.create_delta_ft()
-    Wg_r = spl.create_dog_ft(A=1, a=0.62*pq.deg, B=0.85, b=1.26*pq.deg)
+    Wg_r = spl.create_dog_ft(
+        A=params['A_g'], 
+        a=params['a_g'], 
+        B=params['B_g'], 
+        b=params['b_g']
+        )
     ganglion.set_kernel((Wg_r, delta_t))
     
     # excitatory FF connection
-    Krg_r = spl.create_gauss_ft(A=1, a=0.1*pq.deg)
-    network.connect(ganglion, relay, (Krg_r, delta_t), weight=1)
+    Krg_r = spl.create_gauss_ft(A=params['A_rg'], a=params['a_rg'])
+    network.connect(ganglion, relay, (Krg_r, delta_t), weight=params['w_rg'])
     
     # inhibitory FF
-    Krig_r = spl.create_gauss_ft(A=-1, a=0.3*pq.deg)
-    network.connect(ganglion, relay, (Krig_r, delta_t), weight=0.5)
+    Krig_r = spl.create_gauss_ft(A=params['A_rig'], a=params['a_rig'])
+    network.connect(ganglion, relay, (Krig_r, delta_t), weight=params['w_rig'])
 
     # excitatory FB
-    Krc_ex_r = spl.create_gauss_ft(A=0.5, a=0.83*pq.deg)
-    network.connect(cortical, relay, (Krc_ex_r, delta_t), weight=fb_weight)
+    Krc_ex_r = spl.create_gauss_ft(A=params['A_rc_ex'], a=params['a_rc_ex'])
+    network.connect(cortical, relay, (Krc_ex_r, delta_t), weight=params['w_rc_ex'])
     
     # inhibitory FB
-    # Krc_in_r = spl.create_gauss_ft(A=-0.5, a=0.83*pq.deg)
-    # network.connect(cortical, relay, (Krc_in_r, delta_t), weight=0.5)
+    Krc_in_r = spl.create_gauss_ft(A=params['A_rc_in'], a=params['a_rc_in'])
+    network.connect(cortical, relay, (Krc_in_r, delta_t), weight=params['w_rc_in'])
     
     # TC feed-forward
     Kcr_r = spl.create_delta_ft()
