@@ -1,0 +1,371 @@
+\documentclass{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{enumitem}
+\usepackage{comment}
+\usepackage{proofread}
+\usepackage[round]{natbib}
+\bibliographystyle{plainnat}
+
+
+\renewcommand{\familydefault}{\sfdefault}
+\setlength{\parindent}{0pt}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\vect}[1]{\textbf{\textrm{#1}}}
+\newcommand{\pd}[2]{\frac{\partial {#1}}{\partial {#2}}}
+\newcommand{\pdd}[2]{\frac{\partial_2 {#1}}{\partial_2 {#2}}}
+\renewcommand*{\arraystretch}{1.5}
+
+\title{Working with the eDOG model: Stimulus optimization}
+\author{Davide Crombie}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction} \label{introduction}
+The extended Difference of Gaussians (eDOG) is a mathematical model designed to capture the stimulus responses of the dorsal lateral geniculate nucleus of the thalamus (dLGN) via linear filtering operations that reflect the corticothalamic circuit structure \citep{einevoll2012, mobarhan2018}.
+Under this model, the spatiotemporal response of a homogeneous population of neurons is given by the convolution of the input to the neural population (the stimulus, $S$) with the impulse-response function of the population ($G$).
+
+\begin{equation} \label{impulseresp}
+	R(\vect{r},t) = G(\vect{r},t)*S(\vect{r},t)
+\end{equation}
+
+By the Fourier-convolution theorem,
+
+\begin{equation*}
+	\hat{R} = \hat{G}\hat{S}
+\end{equation*}
+
+When the input is dependent on the response of a different, connected neural population, the input term is given by the convolution of the upstream population's response with a coupling kernel ($K$). 
+The  model assumes that all such inputs sum linearly to produce a response.
+
+\begin{equation*}
+	\hat{R} = \sum_n{\hat{K}_n\hat{R}_n}
+\end{equation*}
+
+In the case of the dLGN relay neuron population, together with some simplifying assumptions that follow from experimental results, the response to a visual sitmulus is given by
+
+\begin{align} \label{edog}
+	\hat{R_r} & = \hat{K}_{rg}\hat{R}_g + \hat{K}_{rig}\hat{R}_g + 
+				  \hat{K}_{cr}\hat{K}_{rc}\hat{R}_r \nonumber \\
+			  & = \frac{\hat{K}_{rg} + \hat{K}_{ri}}{1 - \hat{K}_{rc}\hat{K}_{cr}}\hat{G}_g\hat{S} 
+\end{align}
+
+This model can be extended by making changes either to the parameters of the coupling kernels, impulse-response kernels, and/or the structure of the impulse-response term in (\ref{edog}). 
+One might note, however, that the linear filter approach allows for mathematically defined stimuli as well as naturalistic stimuli to be used as input, and it is likely that part of this arbitrarily large stimulus space yeilds almost indistinguishible responses for two different model instances.
+
+\begin{itemize}[label={}]
+	\item \textbf{Goal:} find a stimulus on an arbitrary parameter space which maximally separates 	
+		  the responses of two model configurations.
+	\item \textbf{Approach:} iteratively optimize second-order approximations of the difference    
+	      between the responses of two different model configurations by applying Newton's method 			  for root finding to the derivative of the difference function.
+\end{itemize}
+
+
+\section{Newton optimization} \label{newtonmethod}
+In order to find the roots of a function $f(x)$, it is observed that, for $x$ sufficiently close, the root a line tangent to $f(x)$, $x^{(0)}$, is closer to the true root of $f$ than $x$ itself. 
+This tangent line is defined as
+
+\begin{equation} \label{tangent1d}
+	g(x) = f'(x)(x^{(0)} - x) + f(x)
+\end{equation}
+
+Setting
+
+\begin{equation*}
+	g(x) = 0 \quad \longrightarrow \quad x^{(0)} = x - \frac{f(x)}{f'(x)}
+\end{equation*}
+
+This process can be performed iteratively
+
+\begin{equation} \label{updaterule1d}
+	x_{n+1} := x_n - \frac{f(x_n)}{f'(x_n)}
+\end{equation}
+
+If $f(x)$ is itself the gradient of another function $R$, the resultant $x^*$ will, if the algorithm has converged to a satifactory degree, represent a stationary point of $R$. 
+In this manner, Newton's method for finding the roots of a function can be used in optimization problems. \par 
+\hfill \newline
+For a multi-dimensional vector-valued function $\vect{f}(\vect{x}): \R^n \rightarrow \R^n$, the tangent is defined by
+
+\begin{align} \label{tangent}
+	\vect{g}(\vect{x}) & = \vect{J}(\vect{x})(\vect{x}^{(0)} - \vect{x}) + \vect{f}(\vect{x})
+\end{align}
+
+Where $\vect{J}$ is the Jacobian of $\vect{f}$
+
+\begin{equation*}
+	\vect{J} = 
+	\begin{pmatrix}
+		\pd{\vect{f}(\vect{x})}{x_1} & \pd{\vect{f}(\vect{x})}{x_2} & \cdots 
+		& \pd{\vect{f}(\vect{x})}{x_n}
+	\end{pmatrix} = 
+	\begin{pmatrix}
+		\pd{f_1(\vect{x})}{x_1} & \pd{f_1(\vect{x})}{x_2} & \cdots & \pd{f_1(\vect{x})}{x_n} \\
+		\pd{f_2(\vect{x})}{x_1} & \pd{f_2(\vect{x})}{x_2} & \cdots & \pd{f_2(\vect{x})}{x_n} \\
+		\vdots & \vdots & \ddots & \vdots \\
+		\pd{f_n(\vect{x})}{x_1} & \pd{f_n(\vect{x})}{x_2} & \cdots & \pd{f_n(\vect{x})}{x_n}
+	\end{pmatrix}
+\end{equation*}
+
+For the roots given by $\vect{f} = \vect{0}$, the update rule becomes
+
+\begin{equation} \label{updaterule}
+	\vect{x}_{n+1} := \vect{x}_n - \vect{J}^{-1}(\vect{x}_n)\vect{f}(\vect{x}_n)	
+\end{equation}
+
+If the function $\vect{f}$ is itself the gradient of a function $R(\vect{x}): \R^n \rightarrow \R$, then the update rule becomes
+
+\begin{equation} \label{updateruledog}
+	\vect{x}_{n+1} := \vect{x}_n - \vect{H}_R^{-1}(\vect{x}_n)\nabla R(\vect{x}_n)
+\end{equation}
+
+where $\nabla R$ is the gradient of $R$ and $\vect{H}_R$ is the Hessian.
+It is described in the appendix how this process is equivalent to iteratively optimizing a direct second order approximation of the response function $R$.
+
+
+\section{Response function gradient} \label{responsegradient}
+The function $R$ will be defined as
+
+\begin{equation}
+	R = (R_{r}^{\alpha} - R_{r}^{\beta})^2
+\end{equation}
+
+Where $R_{r}^{\alpha}$ is the Fourier-transformed spatio-temporal response of the relay cell population in an eDOG model instance $\alpha$. 
+The full eDOG in (\ref{edog}) can be simplified back to the form of (\ref{impulseresp})
+
+\begin{equation*}
+	R_{r}^{\alpha}(\vect{r},t,\vect{x}) = G_{r}^{\alpha}(\vect{r},t)*S(\vect{r},t,\vect{x}) 
+	\\[1em]
+	R = \mathcal{F}^{-1} \left[ (\hat{G}^{\alpha} - \hat{G}^{\beta})\hat{S}\right]
+\end{equation*}
+
+Thus, if the stimulus has a nice mathematical representation with a small number of parameters, $R$ and the gradient of $R$ w.r.t \vect{x} be evaluated at a specific point $(\vect{r},t,\vect{x})$.
+However, if $S$ is a "naturalistic stimulus", the entries in $\vect{x}$ refer to the intensity values of pixels in a static image or movie, finding an analytic solution to $R$, let alone computation of the gradient, is not possible.
+Performing optimization directly on the complete Fourier-transformed response matrices, however, is more tractable, and produces expressions that can also be applied to mathematically-defined stimuli evaluated at a set of points in space and time.
+
+\begin{align} \label{objective}
+	\hat{R}(\vect{x}) & = \left|\left| \hat{\vect{G}}^{\alpha - \beta} \circ 
+						   \hat{\vect{S}}(\vect{x}) \right|\right|^2 = 
+						   \sum_{k}{\left( (\hat{g}_k^{\alpha} - \hat{g}_k^{\beta}) x_k \right)^2}
+\end{align}
+
+Where the gradient and the Hessian are given by
+
+\begin{align}
+	\pd{\hat{R}(\vect{x})}{\vect{x}} & = 
+	\begin{pmatrix}
+		2 g_1^2 x_1 & 2 g_2^2 x_2 & \cdots & 2 g_n^2 x_n
+	\end{pmatrix}^{T} \label{objgradient} \\[1em]
+	\pdd{\hat{R}(\vect{x})}{\vect{x}} & =
+	\begin{pmatrix}
+		2 g_1^2 & 0 & \cdots & 0 \\
+		0 & 2 g_2^2 & \cdots & 0 \\
+		\vdots & \vdots\ & \ddots & \vdots \\
+		0 & 0 & \cdots & 2g_n^2
+	\end{pmatrix} \label{objhessian}
+\end{align}
+
+
+\section{Optimization constraints} \label{constraints}
+The necessity for various constrains on the optimization problem arises from the above. Firstly, from (\ref{objective}) it is clear that the objective function can be arbitrarily large, depending on the amplitude of the stimulus, thus the stimulus must be normalized. Next, for Newton optimization to function, the Hessian must be invertible. And finally, if a maximum is required, second-order constraints must be placed on the Hessian.
+
+
+\section{Appendix} \label{appendix}
+
+\subsection{Note on the partial derivatives of scalar-valued functions}
+The following convention for the gradient ($\nabla$), Jacobian ($\vect{J}$), and Hessian($\vect{H}$) of a function $f: \R^n \rightarrow \R$ is adopted
+
+\begin{align}
+	\pd{f(\vect{x})}{\vect{x}} := \quad \nabla f & = 
+	\begin{pmatrix}
+		\pd{f(\vect{x})}{x_1} & \pd{f(\vect{x})}{x_2} & \cdots & \pd{f(\vect{x})}{x_n}
+	\end{pmatrix}^{T} \label{gradient} \\[1em]
+	\vect{J}_f & = 
+	\begin{pmatrix}
+		\pd{f(\vect{x})}{x_1} & \pd{f(\vect{x})}{x_2} & \cdots & \pd{f(\vect{x})}{x_n}
+	\end{pmatrix} \label{jacobian} \\[1em]
+	\vect{H}_f & = \pd{}{\vect{x}} \left( \pd{f(\vect{x})}{\vect{x}} \right) \nonumber \\
+	& = \vect{J}_f(\nabla f)^{T} \label{hessian}
+\end{align}	
+
+\subsection{Identities for gradients of vectorized scalar forms}
+Given the scalar $f(\vect{x}) = \vect{a}^{T}\vect{x}$, where
+
+\begin{equation*}
+	\vect{x}= 
+	\begin{pmatrix}
+		x_1 & x_2 & \cdots & x_n
+	\end{pmatrix}^{T}
+	\qquad \vect{a} = 
+	\begin{pmatrix}
+		a_1 & a_2 & \cdots & a_n
+	\end{pmatrix}^{T}
+\end{equation*}
+
+$f(\vect{x})$ expands to
+
+\begin{equation*}
+	f(\vect{x}) = a_1x_1 + a_2x_2 + ... + a_nx_n
+\end{equation*}
+
+And by (\ref{gradient})
+
+\begin{equation*}
+	\pd{f(\vect{x})}{\vect{x}} = 
+	\begin{pmatrix}
+		a_1 & a_2 & \cdots & a_n
+	\end{pmatrix}^{T} 
+	= \vect{a}
+\end{equation*}
+
+Because $\vect{a}^{T}\vect{x} = \vect{x}^{T}\vect{a}$,
+
+\begin{equation} \label{scalargradvv}
+	\pd{\vect{a}^{T}\vect{x}}{\vect{x}} = \pd{\vect{x}^{T}\vect{a}}{\vect{x}} = \vect{a} \\[2em]
+\end{equation} 
+
+Given the scalar $f(\vect{x}) = \vect{x}^{T}\vect{A}\vect{x}$, where
+
+\begin{equation*}
+	\vect{x}= 
+	\begin{pmatrix}
+		x_1 \\ 
+		x_2 \\ 
+		\vdots \\ 
+		x_n
+	\end{pmatrix}
+	\qquad \vect{A} = 
+	\begin{pmatrix}
+		a_{11} & a_{12} & \cdots & a_{1n} \\
+		a_{21} & a_{22} & \cdots & a_{2n} \\
+		\vdots & \vdots & \ddots & \vdots \\
+		a_{n1} & a_{n2} & \cdots & a_{nn}
+	\end{pmatrix}
+\end{equation*}
+
+$f(\vect{x})$ expands to
+
+\begin{align*}
+	f(\vect{x}) = \, & a_{11}x_1^2 + a_{12}x_2x_1 + ... + a_{1n}x_nx_1 + \\
+				  & a_{21}x_1x_2 + a_{22}x_2^2 + ... + a_{2n}x_nx_2 + ... \, + \\
+				  & a_{11}x_1x_n + a_{12}x_2x_n + ... + a_{nn}x_n^2
+\end{align*}
+
+The partial derivative with respect to $\vect{x}$ is given by (\ref{gradient}), where
+
+\begin{equation*}
+	\begin{matrix}
+		\pd{f(\vect{x})}{x_1} = (a_{11} + a_{11})x_1 + (a_{12} + a_{21})x_2 + ... + 
+							   	(a_{1n} + a_{n1})x_n \\
+		\pd{f(\vect{x})}{x_2} = (a_{21} + a_{12})x_1 + (a_{22} + a_{22})x_2 + ... + 
+							   	(a_{2n} + a_{n2})x_n \\
+		\vdots \\
+		\pd{f(\vect{x})}{x_n} = (a_{n1} + a_{1n})x_1 + (a_{n2} + a_{2n})x_2 + ... + 
+							   	(a_{nn} + a_{nn})x_n 
+	\end{matrix}
+\end{equation*}
+
+In this form, it is clear that
+
+\begin{align*}
+	\pd{f(\vect{x})}{\vect{x}} & = 
+	\begin{pmatrix}
+		(a_{11} + a_{11}) & (a_{12} + a_{21}) & \cdots & (a_{1n} + a_{n1}) \\
+		(a_{21} + a_{12}) & (a_{22} + a_{22}) & \cdots & (a_{2n} + a_{n2}) \\
+		\vdots & \vdots & \ddots & \vdots \\
+		(a_{n1} + a_{1n}) & (a_{n2} + a_{2n}) & \cdots & (a_{nn} + a_{nn}) 
+	\end{pmatrix} 
+	\begin{pmatrix}
+		x_1 \\ 
+		x_2 \\ 
+		\vdots \\ 
+		x_n
+	\end{pmatrix} \\
+	& = (\vect{A} + \vect{A}^{T})\vect{x}
+\end{align*}
+
+Thus
+
+\begin{equation} \label{scalargradqf}
+	\pd{\vect{x}^{T}\vect{Ax}}{\vect{x}} = (\vect{A} + \vect{A}^{T})\vect{x}
+\end{equation}
+
+\subsection{Equivalence of second-order approximation and Newton optimization methods}
+The second-order Taylor expansion of a twice-differentiable function $f$ at a point $x \rightarrow a$ is given by
+
+\begin{equation} \label{taylor1d}
+	f(x) \approx f(a) + f'(a)(x - a) + \frac{1}{2}f''(a)(x - a)^2
+\end{equation}
+
+For $f: \R^2 \rightarrow \R$, this becomes
+
+\begin{align} \label{taylor2d}
+	f(x,y) \approx \, & f(a,b) + f_x(a,b)(x - a) + f_y(a,b)(y - b) \, + \nonumber \\
+					   & \frac{1}{2}f_{xx}(a,b)(x - a)^2 + f_{xy}(a,b)(x - a)(y - b) + 
+						 \frac{1}{2}f_{yy}(a,b)(y - a)^2 
+\end{align}
+ 
+Vectorizing (\ref{taylor2d}) and generalizing to $n$ dimensions, $f: \R^n \rightarrow \R$ is approximated by
+
+\begin{equation} \label{taylornd}
+	f(\vect{x}) \approx f(\vect{a}) + \vect{J}(\vect{a})(\vect{x} - \vect{a}) + 
+						 \frac{1}{2}(\vect{x} - \vect{a})^{T}\vect{H}(\vect{a})(\vect{x} - \vect{a})
+\end{equation}
+
+Where $\vect{J}$ is the Jacobian of $f$, and $\vect{H}$ is the Hessian (which is assumed to be symmetrical by the Schwarz-Clairaut theorem). 
+Expanding, and collecting all terms dependent on $\vect{x}$
+
+\begin{equation*}
+	f(\vect{x}) \approx \frac{1}{2}\vect{x}^{T}\vect{Hx} - \frac{1}{2}\vect{x}^{T}\vect{Ha} -
+						 \frac{1}{2}\vect{a}^{T}\vect{Hx} + \vect{Jx} + ...
+\end{equation*}
+
+In order to find stationary points, the derivative is taken with respect to $\vect{x}$. 
+By (\ref{scalargradqf}) and (\ref{scalargradvv}) respectively, the partial derivatives of the first and fourth terms with respect to $\vect{x}$ become
+
+\begin{align*}
+	\pd{\vect{x}^{T}\vect{Hx}}{\vect{x}} & = (\vect{H} + \vect{H}^{T})\vect{x} \\
+	\pd{\vect{Jx}}{\vect{x}} = \pd{(\vect{J}^{T})^{T}\vect{x}}{\vect{x})} & = \vect{J}^{T}
+\end{align*}
+Next, it is noted that
+
+\begin{align*}
+	\vect{A}^{T}\vect{B}^{T} & = (\vect{BA})^{T} \\
+	\vect{H} & = \vect{H}^{T}
+\end{align*}
+	
+Thus, if $\vect{z} = \vect{Ha} \enspace \rightarrow \enspace \vect{a}^{T}\vect{H} = \vect{z}^{T}$, and
+
+\begin{equation*}
+	\pd{\vect{z}^{T}\vect{x}}{\vect{x}} = \pd{\vect{x}^{T}\vect{z}}{\vect{x}} = 
+	\vect{z} = \vect{Ha}
+\end{equation*}
+
+Finally, assembling the partial derivatives of all terms
+
+\begin{equation}
+	\pd{f(\vect{x})}{\vect{x}} = \vect{Hx} - \vect{Ha} + \vect{J}^{T}
+\end{equation}
+
+Setting
+
+\begin{equation*}
+	\pd{f(\vect{x})}{\vect{x}} = 0 \quad \longrightarrow \quad 
+	\vect{x} = \vect{a} - \vect{H}^{-1}\vect{J}^{T}
+\end{equation*}
+
+Algorithmically,
+
+\begin{equation}
+	\vect{x}_{n+1} := \vect{x}_n - \vect{H}^{-1}(\vect{x}_n)\vect{J}^{T}(\vect{x}_n) \label{updaterule2}
+\end{equation}
+
+
+\bibliography{references.bib}
+
+\end{document}
