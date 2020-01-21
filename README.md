@@ -13,6 +13,7 @@ $ sudo python3 setup.py develop
 python<br>
 setuptools<br> 
 numpy<br>
+scipy<br>
 quantities<br> 
 matplotlib<br> 
 pylgn<br> 
