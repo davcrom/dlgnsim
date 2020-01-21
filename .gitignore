@@ -1,3 +1,10 @@
 *__pycache__*
 stimuli/*
 *.pyc
+*.aux
+*.bbl
+*.blg
+*.log
+*.synctex.gz
+*.toc
+*.pdf
