@@ -55,9 +55,9 @@ def himmelblau(p):
     b = x + y*y - 7
     return a*a + b*b
 
-class Newton(object):
+class Newton1D(object):
     """
-    A toy example of newton's method for root finding in a 1D function.
+    A toy example of Newton's method for root finding in a 1D function.
     """
     
     def __init__(self, f, df, x0, max_iter=200, eps=np.finfo('float').eps):
@@ -90,4 +90,50 @@ class Newton(object):
         self.convergence = False
         print("Max. iterations reached.")
         return
+
+
+class Newton(object):
+    """
+    A Newton optimizer for multi-dimensional scalar-valued functions.
+    """
+    
+    def __init__(self, J, H, x0, max_iter=200, eps=np.finfo('float').eps):
+        
+        assert J.ndim == 1
+        assert H.ndim == 2
+        assert x0.ndim == J.ndim
+        self.J = J
+        self.H = H
+        self.x0 = x0
+        self.max_iter = max_iter
+        self.eps = eps
+
+    def iterate(self):
+        
+        xn = self.x0
+        for n in range(0, self.max_iter):
+            f_xn = self.f(xn)
+            if abs(f_xn) < self.eps:
+                self.x = xn
+                self.convergence = True
+                print("Convergence at %d iterations." % n)
+                return
+            df_xn = self.df(xn)
+            try:
+                # check that H is invertible (det(H) != 0, 
+                # or 0 not in eigenvalues)
+                # regularize w/ Lagrange multiplier?
+                xn = xn - np.linalg.inv(H) @ J.T
+            except ZeroDivisionError:
+                self.x = xn
+                self.convergence = False
+                print("Zero derivative, exiting iterator at %d iterations" % n)
+                return
+        self.x = xn
+        self.convergence = False
+        print("Max. iterations reached.")
+        return
+
+        
+    
 
