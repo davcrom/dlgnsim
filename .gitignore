@@ -1,5 +1,5 @@
-*__pycache__*
 stimuli/*
+*__pycache__*
 *.pyc
 *.aux
 *.bbl
