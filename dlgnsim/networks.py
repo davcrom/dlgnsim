@@ -12,7 +12,7 @@ import pylgn.kernels.temporal as tpl
 from . import util    
 
 
-def create_staticnewtwork(params=None):
+def create_staticnetwork(params=None):
     """
     Create a PyLGN network where all temporal kernels are delta functions.
     
