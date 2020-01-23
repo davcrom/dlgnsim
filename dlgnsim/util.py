@@ -80,33 +80,6 @@ def parse_parameters(input_params=None):
     return params        
 
 
-def get_neuron(name, network):
-    """
-    Returns requested pylgn.Neuron object. Taken from 
-    https://github.com/miladh/edog-simulations.
-
-    Parameters
-    ----------
-    name : string
-        name of the neuron
-
-    network : pylgn.Network
-
-    Returns
-    -------
-    out : pylgn.Neuron
-    """
-    neuron = [neuron for neuron in network.neurons if type(neuron).__name__ == name]
-    
-    if not neuron:
-        raise NameError("neuron not found in network", name)
-    
-    elif len(neuron) > 1 and name == "Relay":
-        raise ValueError("more than one Relay cell found in network")
-    
-    return neuron
-
-
 def ratio_of_gaussians(x, kc, wc, ks, ws):
     """
     Ratio of Gaussians model from Cavanaugh et al. (2002 J Neurophysiol). Taken
