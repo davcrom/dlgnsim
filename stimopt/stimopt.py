@@ -94,9 +94,10 @@ class Newton(object):
                 return
             
             J_xn = self.J(xn)
+            J_xn += np.identity(len(J_xn)) * np.finfo('float').eps
             
             try:
-                xn = xn - np.linalg.inv(J) @ f_xn.T
+                xn = xn - np.linalg.inv(J_xn) @ f_xn.T
             
             except LinAlgError:
                 self.x = xn
