@@ -5,6 +5,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{bm}
+\usepackage{graphicx}
 \usepackage{enumitem}
 \usepackage{comment}
 \usepackage{proofread}
@@ -58,16 +59,198 @@ In the case of the dLGN relay neuron population, together with some simplifying 
 			  	  \sum_n{\hat{K}_{rc_n}\hat{K}_{c_nr}}} \hat{G}_g\hat{S} 
 \end{align}
 
-This model can be extended by making changes either to the parameters of the coupling kernels, impulse-response kernels, and/or the structure of the impulse-response term in (\ref{edog}). 
+This model can be extended by making changes either to the parameters of the coupling kernels, impulse-response kernels, and/or the structure of the impulse-response term in \eqref{edog}. 
 One might note, however, that the linear filter approach allows for mathematically defined stimuli as well as naturalistic stimuli to be used as input, and it is likely that part of this arbitrarily large stimulus space yeilds almost indistinguishible responses for two different model instances.
 
-\begin{itemize}[label={}]
-	\item \textbf{Goal:} find a stimulus on an arbitrary parameter space which maximally separates 	
-		  the responses of two model configurations.
-	\item \textbf{Approach:} iteratively optimize second-order approximations of the difference    
-	      between the responses of two different model configurations by applying Newton's method 			  for root finding to the derivative of the difference function.
-\end{itemize}
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+	\textbf{Goal:} find a stimulus on an arbitrary parameter space which maximally separates 	
+	the responses of two model configurations.
+\end{minipage}
+\end{center}
 
+
+\section{Response function gradient} \label{responsegradient}
+Let the objective function $R$ be defined as
+
+\begin{equation}
+	R = (R_{r}^{\alpha} - R_{r}^{\beta})^2
+\end{equation}
+
+Where $R_{r}^{\alpha}$ is the spatio-temporal response of the relay cell population in an eDOG model instance $\alpha$. 
+The full eDOG in \eqref{edog} can be simplified back to the form of \eqref{impulseresp}
+
+\begin{equation*}
+	R_{r}^{\alpha}(\vect{r},t,\vect{x}) = G_{r}^{\alpha}(\vect{r},t)*S(\vect{r},t,\vect{x}) 
+\end{equation*}
+
+\begin{equation} \label{objfunc}
+	\therefore \quad R(\vect{r}, t, \vect{x}) = \mathcal{F}^{-1} \left[ 
+	\left(\hat{G}^{\alpha}(\vect{k}, \omega) - \hat{G}^{\beta}(\vect{k}, \omega)\right)
+	\hat{S}(\vect{k}, \omega, \vect{x}) \right]^2 
+\end{equation}
+
+Evaluating the gradient of this function with respect to the stimulus parameters $\vect{x}$ - as is necessary for optimization - is not possible.
+Furthermore, this formulation of response functions precludes the use of a "naturalistic stimulus", where the entries in $\vect{x}$ would refer to refer to the intensity values of pixels in an image.
+As in a digital image, impulse-response functions and mathematically-defined stimuli can be evaluated at a discrete set of points in space and time.
+When all terms are treated as vectors with independent elements:
+
+\begin{align} \label{objmat}
+	\hat{\vect{R}}(\vect{x}) & = \left( (\hat{\vect{G}}^\alpha - \hat{\vect{G}}^\beta) \circ 
+						   		  \vect{x} \right)^2 = 
+						   		  \left( \hat{\vect{G}} \circ  \vect{x} \right)^2 = 
+						   		  \sum_n{\left( \hat{g}_n x_n \right)^2}
+\end{align}
+
+Where $\hat{\vect{R}}(\vect{x}) = \vect{R}(\vect{x})$ by Perseval's theorem.
+The gradient and the Hessian are then given by
+
+\begin{align}
+	\pd{\hat{\vect{R}}(\vect{x})}{\vect{x}} & = 
+	\begin{pmatrix}
+		2 g_1^2 x_1 & 2 g_2^2 x_2 & \cdots & 2 g_n^2 x_n
+	\end{pmatrix}^{T} \label{objgradient} \\[1em]
+	\pdd{\hat{\vect{R}}(\vect{x})}{\vect{x}^2} & =
+	\begin{pmatrix}
+		2 g_1^2 & 0 & \cdots & 0 \\
+		0 & 2 g_2^2 & \cdots & 0 \\
+		\vdots & \vdots\ & \ddots & \vdots \\
+		0 & 0 & \cdots & 2g_n^2
+	\end{pmatrix} \label{objhessian}
+\end{align}
+
+\section{First-order constraints} \label{foc}
+The necessity for various constrains on the optimization problem arises from the above: it is clear from \eqref{objmat} that the objective function can be arbitrarily large, depending on the amplitude of the stimulus. 
+Thus the stimulus should be normalized for a meaningful result. \par
+\hfill \newline
+The Lagrangian method for constrained optimization seeks to find the maximum value of a function $f(\vect{x})$ constrained on the manifold $\lbrace \vect{x} \in \R^n \enspace | \enspace c(\vect{x}) = a \rbrace$ departing from the observation that at the maximum of $f(\vect{x})$ on $c(\vect{x}) = a$ the gradients of $f(\vect{x})$ and $c(\vect{x})$ are paralell \citep[ch.12]{nocedal2006}.
+
+\begin{equation*}
+	\nabla f(\vect{x}) = \lambda \nabla c(\vect{x}), \quad \text{where} \enspace c(\vect{x}) = a
+\end{equation*}
+
+The Lagrangian function is thus constructed as
+
+\begin{equation} \label{lagrangian}
+	\Lagr(\vect{x},\lambda) = f(\vect{x}) - \lambda(c(\vect{x}) - a)
+\end{equation}
+
+Formally, the stimulus amplitude constraint set is given by the unit $n$-sphere (sometimes referred to as the $L_2$ norm of $\vect{x}$)
+
+\begin{equation} \label{constraint}
+	c(\vect{x}) = ||\vect{x}||_2 - 1 = \sum_n{x_n^2} - 1 = 0
+\end{equation}
+
+So the Lagrangian objective function given \eqref{objmat} and \eqref{constraint} is
+
+\begin{equation}
+	\Lagr_R(\vect{x},\lambda) = \hat{\vect{R}}(\vect{x}) - \lambda c(\vect{x})
+\end{equation}
+
+The gradient is given by
+
+\begin{align} \label{lagrgrad}
+	\widetilde{\nabla} \Lagr(\vect{x},\bm{\lambda}) & = 
+	\begin{pmatrix}
+		\pd{\Lagr}{\lambda} & \pd{\Lagr}{\vect{x}_1} & \pd{\Lagr}{\vect{x}_2} 
+		& \cdots & \pd{\Lagr}{\vect{x}_n}
+	\end{pmatrix}^{T} \\
+	\widetilde{\nabla} \Lagr_R(\vect{x},\bm{\lambda})& = 
+	\begin{pmatrix}
+		c(\vect{x}) \\
+		\pd{f(\vect{x})}{x_1} - \lambda \pd{c(\vect{x})}{x_1} \\
+		\pd{f(\vect{x})}{x_2} - \lambda \pd{c(\vect{x})}{x_2}	\\	
+		\vdots \\
+		\pd{f(\vect{x})}{x_n} - \lambda \pd{c(\vect{x})}{x_n}
+	\end{pmatrix} = 
+	\begin{pmatrix}
+		\sum_n{x_n^2} - 1 \\
+		2 g_1^2 x_1 - 2 \lambda x_1 \\
+		2 g_2^2 x_2 - 2 \lambda x_2 \\
+		\vdots \\
+		2 g_n^2 x_n - 2 \lambda x_n
+	\end{pmatrix} \nonumber
+\end{align}
+
+The Lagrangian objective has stationary points at $\nabla \Lagr(\vect{x},\bm{\lambda}) = \vect{0}$.
+The bottom $n$ rows of this system of equations form the eigenvalue problem
+
+\begin{equation}
+	\vect{I} \hat{\vect{G}} \vect{x} = \lambda \vect{x}
+\end{equation}
+
+The trivial solution to this eigenvalue problem, $\vect{x} = \vect{0}$ does not satisfy $c(\vect{x}) = 0$, and hence is not a solution to the full $\nabla \Lagr(\vect{x},\bm{\lambda}) = \vect{0}$ system.
+The non-trival solutions, given by the elements of $\hat{\vect{G}}$ and the corresponding standard basis vectors of $\R^n$ (e.g. $\mu = g_1$ and $\vect{x} = (1, 0, ..., 0))$, are valid as they do satisfy the constraint. 
+Thus the objective function $\hat{\vect{R}}$ has stationary points at values of $\vect{x}$ corresponding to pure spatiotemporal sine waves.
+It can be seen from \eqref{objmat} that the maximum of all the stationary points occurs at $\text{argmax}(\hat{\vect{G}})$.
+The curvature at this stationary point, however, remains to be determined.
+
+
+\section{Second-order constraints} \label{soc}
+If the goal is to maximize the objective function, it must be ensured that the curvature of the function is negative at the valid stationary points. While the full bordered Hessian is given by
+
+\begin{equation} \label{lagrhessian}
+	\widetilde{\vect{H}}_\Lagr = 
+	\begin{pmatrix}
+		\pdd{\Lagr}{\lambda^2} & \pdd{\Lagr}{\lambda\vect{x}} \\
+		\pdd{\Lagr}{\vect{x}\lambda} & \pdd{\Lagr}{\vect{x}^2}
+	\end{pmatrix} = 
+	\begin{pmatrix}
+		0 & \pdd{\Lagr}{\lambda\vect{x}} \\
+		\pdd{\Lagr}{\vect{x}\lambda} & \pdd{\Lagr}{\vect{x}^2}
+	\end{pmatrix}
+\end{equation}
+
+The relevant curvature is given more simply by
+
+\begin{equation}
+	\vect{H}_{\Lagr_R} =
+	\begin{pmatrix}
+		2g_1^2 - 2\lambda & 0 & \cdots & 0 \\
+		0 & 2g_2^2 - 2\lambda & \cdots & 0 \\
+		\vdots & \vdots & \ddots & \vdots \\
+		0 & 0 & \cdots & 2g_n^2 - 2\lambda
+	\end{pmatrix} \nonumber
+\end{equation}
+
+The curvature of the constrained objective can be characterized by the eigenvalues of this Hessian, which are given by the elements of the diagonal.
+Replacing $\lambda$ with $g_*^2$ (where $g_* = \text{max}(\hat{\vect{G}})$), a set of eigenvlaues is obtained that are negative for all values corresponding to $g_i \leq g_*$ and zero for values corresponding to $g_i = g*$.
+Therefore $\Lagr_R$ is maximized with respect to all stimulus dimensions except for $\vect{x}_*$, where there is no curvature. \par
+\hfill \newline
+It can be concluded that the stimulus which maximizes the difference between any two eDOG model instances is the spatiotemporal sine wave at which the difference in the value of the two impulse-response function, evaluated at that spatiotemporal frequency, is greatest.
+
+\begin{comment}
+If $c(\vect{x})$ is re-defined as the $L_1$ norm of the stimulus vector (i.e. the plane $c(\vect{x}) = ||\vect{x}||_1 = \sum_n{|x_n|} - 1$), then a linear system is obtained which can be solved algorithmically (e.g. Gauss-Jordan elimination) without losing the main purpose of the constraint.
+However, the plane defined by this constraint is not smooth, and therefore the equality constriant $c(\vect{x}) = \sum_n{|x_n|} - 1$ has to be split up into a set of inequality constraints \citep[ch.12, p. 306]{nocedal2006}. \yel{[This needs to be worked out further.]}
+\end{comment}
+
+
+\section{Temporal frequency preferences}
+\cite{mobarhan2018} have shown that an eDOG network configuration where inhibitory cortical feedback is delayed compared to excitatory feedback shifts the temporal filtering properties of dLGN relay cell responses to drifting grating stimuli from low-pass (when feedback weights are 0) to band-pass (for increasing feedback weights). 
+Presently, data is being collected for dLGN relay cell responses to a "full-field chirp" stimulus with optogenetic suppression of cortical feedback. 
+The results from \cite{mobarhan2018} suggest that the response matrix to a chirp stimulus would contain higher power at some peak temporal frequency when cortical feedback is present. 
+Let $\hat{R}_r^\alpha$ represent the response of a model instance with feedback present, and $\hat{R}_r^\beta$ represent the response of a model instance without feedback.
+The corresponding impulse-response functions are given by
+
+\begin{align*}
+	\hat{G}_r^\alpha & = \frac{\hat{K}_{rg} + \hat{K}_{rig}}
+					   {1 - \hat{K}_{rcr}^{ex} - \hat{K}_{rcr}^{in}} \hat{G}_g \\
+	\hat{G}_r^\beta & = \left( \hat{K}_{rg} + \hat{K}_{rig} \right) \hat{G}_g \\
+\end{align*}
+
+And the stimulus which maximally separates the two responses is the sine wave pointing in the direction of
+
+\begin{equation*}
+	\text{argmax}\left( \hat{\vect{G}}_r^\alpha - \hat{\vect{G}}_r^\beta \right)
+\end{equation*}
+
+\yel{[depictions of the impulse-response matrices, their difference, and the optimal stimulus will go here]}
+
+
+\section{Response nonlinearities}
+\yel{[...]}
+
+In cases where the system of equations given by $\nabla \Lagr(\vect{x},\bm{\lambda}) = \vect{0}$ cannot be solved analytically, a numerical approach must be adopted for optimization.
 
 \section{Newton optimization} \label{newtonmethod}
 In order to find the roots of a function $f(x)$, it is observed that, for $x$ sufficiently close, the root a line tangent to $f(x)$, $x^{(0)}$, is closer to the true root of $f$ than $x$ itself. 
@@ -129,168 +312,24 @@ If the function $\vect{f}$ is itself the gradient of a function $R(\vect{x}): \R
 where $\nabla R$ is the gradient of $R$ and $\vect{H}_R$ is the Hessian.
 It is described in the appendix how this process is equivalent to iteratively optimizing a direct second order approximation of the response function $R$.
 
-
-\section{Response function gradient} \label{responsegradient}
-The function $R$ will be defined as
-
-\begin{equation}
-	R = (R_{r}^{\alpha} - R_{r}^{\beta})^2
-\end{equation}
-
-Where $R_{r}^{\alpha}$ is the Fourier-transformed spatio-temporal response of the relay cell population in an eDOG model instance $\alpha$. 
-The full eDOG in (\ref{edog}) can be simplified back to the form of (\ref{impulseresp})
-
-\begin{align}
-	R_{r}^{\alpha}(\vect{r},t,\vect{x}) & = G_{r}^{\alpha}(\vect{r},t)*S(\vect{r},t,\vect{x}) 
-	\nonumber \\[1em]
-	\therefore \quad \hat{R}(\vect{k}, \omega, \vect{x}) & = 
-	\left[ \left(\hat{G}^{\alpha}(\vect{k}, \omega) - \hat{G}^{\beta}(\vect{k}, \omega)\right)
-	\hat{S}(\vect{k}, \omega, \vect{x}) \right]^2 \label{objfunc}
-\end{align}
-
-Thus, if the stimulus has a nice mathematical representation with a small number of parameters, $R$ and the gradient of $R$ w.r.t. $\vect{x}$ can be evaluated at a specific point $(\vect{r},t,\vect{x})$.
-However, if $S$ is a "naturalistic stimulus", the entries in $\vect{x}$ refer to the intensity values of pixels in a static image or movie, finding an analytic solution to $R$, let alone computation of the gradient, is not possible.
-Performing optimization directly on the complete Fourier-transformed response matrices, however, is more tractable, and produces expressions that can also be applied to mathematically-defined stimuli evaluated at a set of points in space and time.
-
-\begin{align} \label{objmat}
-	\hat{\vect{R}}(\vect{x}) & = \left( (\hat{\vect{G}}^\alpha - \hat{\vect{G}}^\beta) \circ 
-						   		  \hat{\vect{S}}(\vect{x}) \right)^2 = 
-						   		  \sum_{k}{\left( (\hat{g}_k^{\alpha} - 
-						   		  \hat{g}_k^{\beta}) x_k \right)^2}
-\end{align}
-
-Assigning $g_k := \hat{g}_k^\alpha - \hat{g}_k^\beta$, the gradient and the Hessian are given by
-
-\begin{align}
-	\pd{\hat{\vect{R}}(\vect{x})}{\vect{x}} & = 
-	\begin{pmatrix}
-		2 g_1^2 x_1 & 2 g_2^2 x_2 & \cdots & 2 g_n^2 x_n
-	\end{pmatrix}^{T} \label{objgradient} \\[1em]
-	\pdd{\hat{\vect{R}}(\vect{x})}{\vect{x}^2} & =
-	\begin{pmatrix}
-		2 g_1^2 & 0 & \cdots & 0 \\
-		0 & 2 g_2^2 & \cdots & 0 \\
-		\vdots & \vdots\ & \ddots & \vdots \\
-		0 & 0 & \cdots & 2g_n^2
-	\end{pmatrix} \label{objhessian}
-\end{align}
-
-\section{Optimization constraints} \label{constraints}
-The necessity for various constrains on the optimization problem arises from the above: it is clear from (\ref{objmat}) that the objective function can be arbitrarily large, depending on the amplitude of the stimulus. 
-Thus the stimulus should be normalized for a meaningful result. \par
-\hfill \newline
-The Lagrangian method for constrained optimization seeks to find the maximum value of a function $f(\vect{x})$ constrained on the manifold $\lbrace \vect{x} \in \R^n \enspace | \enspace c(\vect{x}) = a \rbrace$ departing from the observation that at the maximum of $f(\vect{x})$ on $c(\vect{x}) = a$ the gradients of $f(\vect{x})$ and $c(\vect{x})$ are paralell \citep[ch.12]{nocedal2006}.
-
-\begin{equation*}
-	\nabla f(\vect{x}) = \lambda \nabla c(\vect{x}), \quad \text{where} \enspace c(\vect{x}) = a
-\end{equation*}
-
-The Lagrangian objective function is thus defined as
-
-\begin{equation} \label{lagrangian}
-	\Lagr(\vect{x},\lambda) = f(\vect{x}) - \lambda(c(\vect{x}) - a)
-\end{equation}
-
 \begin{comment}
-Subject to multiple constraints
-
-\begin{equation} \label{lagrangiannd}
-	\Lagr(\vect{x}, \bm{\lambda}) = f(\vect{x}) - \sum_k{\lambda_k(c_k(\vect{x}) - a_k)}
-\end{equation}
-\end{comment}
-
-Formally, the stimulus amplitude constraint set is given by the unit $n$-sphere ($L_2$ norm)
-
-\begin{align}
-	\lbrace \vect{x} \in \R^n \enspace | \enspace c(\vect{x}) = 0 \rbrace, \quad
-	\text{where} \enspace c(\vect{x}) = ||\vect{x}||_2 - 1 = \sum_n{x_n^2} - 1
-\end{align}
-
-The gradient is given by
-
-\begin{align}
-	\nabla \Lagr(\vect{x},\bm{\lambda}) & = 
-	\begin{pmatrix}
-		\pd{\Lagr}{\lambda} & \pd{\Lagr}{\vect{x}_1} & \pd{\Lagr}{\vect{x}_2} 
-		& \cdots & \pd{\Lagr}{\vect{x}_n}
-	\end{pmatrix}^{T} \\
-	& = 
-	\begin{pmatrix}
-		c(\vect{x}) \\
-		\pd{f(\vect{x})}{x_1} + \lambda \pd{c(\vect{x})}{x_1} \\
-		\pd{f(\vect{x})}{x_2} + \lambda \pd{c(\vect{x})}{x_2}	\\	
-		\vdots \\
-		\pd{f(\vect{x})}{x_n} + \lambda \pd{c(\vect{x})}{x_n}
-	\end{pmatrix} = 
-	\begin{pmatrix}
-		\sum_n{x_n^2} - 1 \\
-		2 g_1^2 x_1 + 2 \lambda x_1) \\
-		2 g_1^2 x_2 + 2 \lambda x_2) \\
-		\vdots \\
-		2 g_1^2 x_n + 2 \lambda x_n)
-	\end{pmatrix} \nonumber
-\end{align}
-
-And the bordered Hessian is given by
-
-\begin{align}
-	\widetilde{\vect{H}}_\Lagr & = 
-	\begin{pmatrix}
-		\pdd{\Lagr}{\lambda^2} & \pdd{\Lagr}{\lambda\vect{x}} \\
-		\pdd{\Lagr}{\vect{x}\lambda} & \pdd{\Lagr}{\vect{x}^2}
-	\end{pmatrix} = 
-	\begin{pmatrix}
-		0 & \pdd{\Lagr}{\lambda\vect{x}} \\
-		\pdd{\Lagr}{\vect{x}\lambda} & \pdd{\Lagr}{\vect{x}^2}
-	\end{pmatrix} \\
-	& = 
-	\begin{pmatrix}
-		0 & 2x_1 & 2x_2 & \cdots & 2x_n \\
-		2x_1 & 2 (g_1^2 + \lambda) & 0 & \cdots & 0 \\
-		2x_2 & 0 & 2 (g_2^2 + \lambda) & \cdots & 0 \\
-		\vdots & \vdots & \vdots & \ddots & \vdots \\
-		2x_n & 0 & 0 & \cdots & 2 (g_n^2 + \lambda)
-	\end{pmatrix} \nonumber
-\end{align}
-
-However, it is noted that the system of equations given by $\nabla \Lagr(\vect{x},\bm{\lambda}) = \vect{0}$ includes non-linear terms, and thus $(\lambda, x_1, x_2, ... , x_n)$ cannot be solved for.
-If $c(\vect{x})$ is re-defined as the $L_1$ norm of the stimulus vector (i.e. the plane $c(\vect{x}) = ||\vect{x}||_1 = \sum_n{|x_n|} - 1$), then a linear system is obtained which can be solved algorithmically (e.g. Gauss-Jordan elimination) without losing the main purpose of the constraint.
-However, the plane defined by this constraint is not smooth, and therefore the equality constriant $c(\vect{x}) = \sum_n{|x_n|} - 1$ has to be split up into a set of inequality constraints \citep[ch.12, p. 306]{nocedal2006}. \yel{[This needs to be worked out further.]}
-
-
 \section{A note on implementation}
 Rather than being incorporated into mathematical formalism, the constraint on stimulus amplitude can also be implemented by re-normalizing the stimulus after every iteration of the optimizer. Geometrically, this has the effect of moving the new point $\vect{x}_{n+1}$ onto the sphere $\sum_n{x_n^2} = 1$ without changing the direction of the vector. \par
 \hfill \newline
 Additional, more general, constraints on the Newton optimization method regard properties of the Hessian matrix.
-From (\ref{updateruledog}) it can be seen that the response function Hessian must be invertible, that is
+From \eqref{updateruledog} it can be seen that the response function Hessian must be invertible, that is
 
 \begin{equation}
-	det(H_R) \neq 0
+	\text{det}(\vect{H}_R) \neq 0
 \end{equation}
+
+In the case of \eqref{objmat}, it can be seen from \eqref{objhessian} that $\text{det}(\vect{H}_R) = 0$ if any term in the impulse-response kernel matrix $\hat{\vect{G}}$ is $0$. Thus invertibility can be guaranteed by adding a small number to all elements of the diagonal.
 
 Further, if a maximum is required, the Hessian must be negative definite (all eigenvalues are $< 0$).
 The first condition implies that the algorithm will fail if $\vect{x}$ falls on an inflection point, and the second condition is necessary for the search direction to point towards a maximum. 
 Both of these conditions can be dealt with by re-intializing the optimization from a new starting point when one of the conditions is violated.
 This method should be implemented even when the algorithm successfully terminates, as the search method does not guarantee that a global maximum will be found. 
-
-\section{A worked example}
-\cite{mobarhan2018} have shown that an eDOG network configuration where inhibitory cortical feedback is delayed compared to excitatory feedback shifts the temporal filtering properties of dLGN relay cell responses to drifting grating stimuli from low-pass (when feedback weights are 0) to band-pass (for increasing weights). Presently, data is being collected for dLGN relay cell responses to a "full-field chirp" stimulus with via optogenetic suppression of cortical feedback. Previous results \citep{mobarhan2018} suggest that the response matrix to a chirp stimulus would contain higher power in at some peak temporal frequency when cortical feedback is present. It can be seen from (\ref{objfunc}) that the response to a certain angular frequency $\omega$ present in the stimulus is proportional to the impulse-response function $\hat{G}$ evaluated at $\omega$. Let $\hat{G}_r^\alpha$ represent the response of a model instance with feedback present, and $\hat{G}_r^\beta$ represent the response of a model instance without feedback.
-
-\begin{align*}
-	\hat{G}_r^\alpha & = \frac{\hat{K}_{rg} + \hat{K}_{rig}}
-					   {1 - \hat{K}_{rcr}^{ex} - \hat{K}_{rcr}^{in}} \hat{G}_g \\
-	\hat{G}_r^\beta & = \left( \hat{K}_{rg} + \hat{K}_{rig} \right) \hat{G}_g \\
-\end{align*}
-
-The objective function is given by
-
-\begin{equation}
-	\hat{G}(\omega) = \hat{G}_r^\alpha - \hat{G}_r^\beta = 
-	\left( \frac{1}{1 - \hat{K}_{rcr}^{ex} - \hat{K}_{rcr}^{in}} - 1 \right)
-	\left( \hat{K}_{rg} + \hat{K}_{rig} \right) \hat{G}_g
-\end{equation}
-
-\yel{[...]}
+\end{comment}
 
 \section{Appendix} \label{appendix}
 
@@ -330,7 +369,7 @@ $f(\vect{x})$ expands to
 	f(\vect{x}) = a_1x_1 + a_2x_2 + ... + a_nx_n
 \end{equation*}
 
-And by (\ref{gradient})
+And by \eqref{gradient}
 
 \begin{equation*}
 	\pd{f(\vect{x})}{\vect{x}} = 
@@ -373,7 +412,7 @@ $f(\vect{x})$ expands to
 				  & a_{11}x_1x_n + a_{12}x_2x_n + ... + a_{nn}x_n^2
 \end{align*}
 
-The partial derivative with respect to $\vect{x}$ is given by (\ref{gradient}), where
+The partial derivative with respect to $\vect{x}$ is given by \eqref{gradient}, where
 
 \begin{equation*}
 	\begin{matrix}
@@ -427,7 +466,7 @@ For $f: \R^2 \rightarrow \R$, this becomes
 						 \frac{1}{2}f_{yy}(a,b)(y - a)^2 
 \end{align}
  
-Vectorizing (\ref{taylor2d}) and generalizing to $n$ dimensions, $f: \R^n \rightarrow \R$ is approximated by
+Vectorizing \eqref{taylor2d} and generalizing to $n$ dimensions, $f: \R^n \rightarrow \R$ is approximated by
 
 \begin{equation} \label{taylornd}
 	f(\vect{x}) \approx f(\vect{a}) + \vect{J}(\vect{a})(\vect{x} - \vect{a}) + 
@@ -443,7 +482,7 @@ Expanding, and collecting all terms dependent on $\vect{x}$
 \end{equation*}
 
 In order to find stationary points, the derivative is taken with respect to $\vect{x}$. 
-By (\ref{scalargradqf}) and (\ref{scalargradvv}) respectively, the partial derivatives of the first and fourth terms with respect to $\vect{x}$ become
+By \eqref{scalargradqf} and \eqref{scalargradvv} respectively, the partial derivatives of the first and fourth terms with respect to $\vect{x}$ become
 
 \begin{align*}
 	\pd{\vect{x}^{T}\vect{Hx}}{\vect{x}} & = (\vect{H} + \vect{H}^{T})\vect{x} \\
@@ -478,36 +517,9 @@ Setting
 
 Algorithmically,
 
-\begin{equation}
-	\vect{x}_{n+1} := \vect{x}_n - \vect{H}^{-1}(\vect{x}_n)\vect{J}^{T}(\vect{x}_n) \label{updaterule2}
+\begin{equation} \label{updaterule2}
+	\vect{x}_{n+1} := \vect{x}_n - \vect{H}^{-1}(\vect{x}_n)\vect{J}^{T}(\vect{x}_n) 
 \end{equation}
-
-\subsection{Expansion of eDOG model terms}
-Kernels are assumed to have separable space and time components and a weight \citep{einevoll2012, mobarhan2018} 
-
-\begin{align*}
-	G(r,t) & = w f(r) h(t)
-\end{align*}
-
-Impulse-response functions of retinal gangion cells ($G_g$)
-
-\begin{align*}
-	f_g(r) & = \frac{A}{\pi a^2} e^{\left( \frac{-r}{a} \right)^2} - 
-			 \frac{B}{\pi b^2} e^{\left( \frac{-r}{b} \right)^2} \\
-	h_g & = \left \lbrace
-	\begin{array}{r@{}l}
-		\sin(\frac{\pi t}{\tau}), & \quad 0 \leq t \leq \tau \\
-		B \sin(\frac{\pi t}{\tau}), & \quad \tau < t \leq 2 \tau \\
-		0, & \quad \text{else}
-	\end{array} \right.
-\end{align*}
-
-Coupling kernel $K$ of input population $n$
-
-\begin{align*}
-	f_n(r) & = \frac{A_n}{\pi a_n^2} e^{\left( \frac{-r}{a_n} \right)^2} \\
-	h_n & = \frac{1}{\tau_n} e^{-\frac{t - \Delta_n}{\tau_n}} \theta(t - \Delta_n)
-\end{align*}
 
 
 \bibliography{references.bib}
