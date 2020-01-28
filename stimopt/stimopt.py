@@ -21,8 +21,26 @@ def himmelblau(p):
     b = x + y*y - 7
     
     return a*a + b*b
-
     
+
+def himmelblau_gradient(p):
+    
+    x, y = p
+    a = 4. * x * (x*x + y - 11.)
+    b = 2. * (x + y*y - 7.)
+    c = 4. * y * (y*y + x - 11.)
+    d = 2. * (y + x*x - 7.)
+
+    return np.array([a + b,  c + d])
+    
+def himmelblau_hessian(p):
+    
+    x, y = p
+    a = 4 * (x*x + y - 11)+ 8 * x*x + 2
+    b = 4 * x + 4 * y
+    c = 4 * (y*y + x - 11) + 8 * y*y + 2
+    
+    return np.array([[a, b], [b, c]])
 
 
 class Newton(object):
