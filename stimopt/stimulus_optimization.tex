@@ -31,17 +31,11 @@
 
 \section{Introduction} \label{introduction}
 The extended Difference of Gaussians (eDOG) is a mathematical model designed to capture the stimulus responses of the dorsal lateral geniculate nucleus of the thalamus (dLGN) via linear filtering operations that reflect the corticothalamic circuit structure \citep{einevoll2012, mobarhan2018}.
-Under this model, the spatiotemporal response of a homogeneous population of neurons is given by the convolution of the input to the neural population (the stimulus, $S$) with the impulse-response function of the population ($G$).
+Under this model, the spatiotemporal response of a homogeneous population of neurons is given by the convolution of the input to the neural population (the stimulus, $S$) with the impulse-response function of the population ($G$) in the time domain, or a multiplication of the two terms in the frequency domain.
 
 \begin{equation} \label{impulseresp}
-	R(\vect{r},t) = G(\vect{r},t)*S(\vect{r},t)
+	R(\vect{r},t) = G(\vect{r},t)*S(\vect{r},t) = \mathcal{F}^{-1} \left[ \hat{G}\hat{S} \right]
 \end{equation}
-
-By the Fourier-convolution theorem,
-
-\begin{equation*}
-	\hat{R} = \hat{G}\hat{S}
-\end{equation*}
 
 When the input is dependent on the response of a different, connected neural population, the input term is given by the convolution of the upstream population's response with a coupling kernel ($K$). 
 The  model assumes that all such inputs sum linearly to produce a response.
@@ -90,10 +84,10 @@ The full eDOG in \eqref{edog} can be simplified back to the form of \eqref{impul
 	\hat{S}(\vect{k}, \omega, \vect{x}) \right]^2 
 \end{equation}
 
-Evaluating the gradient of this function with respect to the stimulus parameters $\vect{x}$ - as is necessary for optimization - is not possible.
-Furthermore, this formulation of response functions precludes the use of a "naturalistic stimulus", where the entries in $\vect{x}$ would refer to refer to the intensity values of pixels in an image.
-As in a digital image, impulse-response functions and mathematically-defined stimuli can be evaluated at a discrete set of points in space and time.
-When all terms are treated as vectors with independent elements:
+Evaluating the gradient of this function with respect to the stimulus parameters $\vect{x}$ --- as is necessary for optimization --- is intractable.
+Furthermore, this formulation of the response in terms of functions precludes the use of a "naturalistic stimulus", where the entries in $\vect{x}$ would refer to refer to the intensity values of pixels in an image.
+As in a digital image, impulse-response functions and mathematically-defined stimuli can be evaluated at a discrete set of points in space and time to yield arrays of intensity values.
+When all terms are treated as arrays in the frequency domain, the objective function becomes
 
 \begin{align} \label{objmat}
 	\hat{\vect{R}}(\vect{x}) & = \left( (\hat{\vect{G}}^\alpha - \hat{\vect{G}}^\beta) \circ 
@@ -102,7 +96,8 @@ When all terms are treated as vectors with independent elements:
 						   		  \sum_n{\left( \hat{g}_n x_n \right)^2}
 \end{align}
 
-Where $\hat{\vect{R}}(\vect{x}) = \vect{R}(\vect{x})$ by Perseval's theorem.
+where $\hat{\vect{R}}(\vect{x}) = \vect{R}(\vect{x})$ by Perseval's theorem.
+For simplicity, the the complex-valued entries in $\hat{\vect{G}}$ may be replaced by their magnitudes.
 The gradient and the Hessian are then given by
 
 \begin{align}
@@ -150,12 +145,12 @@ So the Lagrangian objective function given \eqref{objmat} and \eqref{constraint}
 The gradient is given by
 
 \begin{align} \label{lagrgrad}
-	\widetilde{\nabla} \Lagr(\vect{x},\bm{\lambda}) & = 
+	\nabla \Lagr(\vect{x},\bm{\lambda}) & = 
 	\begin{pmatrix}
 		\pd{\Lagr}{\lambda} & \pd{\Lagr}{\vect{x}_1} & \pd{\Lagr}{\vect{x}_2} 
 		& \cdots & \pd{\Lagr}{\vect{x}_n}
 	\end{pmatrix}^{T} \\
-	\widetilde{\nabla} \Lagr_R(\vect{x},\bm{\lambda})& = 
+	\nabla \Lagr_R(\vect{x},\bm{\lambda})& = 
 	\begin{pmatrix}
 		c(\vect{x}) \\
 		\pd{f(\vect{x})}{x_1} - \lambda \pd{c(\vect{x})}{x_1} \\
@@ -176,11 +171,11 @@ The Lagrangian objective has stationary points at $\nabla \Lagr(\vect{x},\bm{\la
 The bottom $n$ rows of this system of equations form the eigenvalue problem
 
 \begin{equation}
-	\vect{I} \hat{\vect{G}} \vect{x} = \lambda \vect{x}
+	\vect{I} \hat{\vect{G}}^2 \vect{x} = \lambda \vect{x}
 \end{equation}
 
 The trivial solution to this eigenvalue problem, $\vect{x} = \vect{0}$ does not satisfy $c(\vect{x}) = 0$, and hence is not a solution to the full $\nabla \Lagr(\vect{x},\bm{\lambda}) = \vect{0}$ system.
-The non-trival solutions, given by the elements of $\hat{\vect{G}}$ and the corresponding standard basis vectors of $\R^n$ (e.g. $\mu = g_1$ and $\vect{x} = (1, 0, ..., 0))$, are valid as they do satisfy the constraint. 
+The non-trival solutions, given by the elements of $\hat{\vect{G}}^2$ and the corresponding standard basis vectors of $\R^n$ (e.g. $\lambda = g_1^2$ and $\vect{x} = (1, 0, ..., 0))$, are valid as they do satisfy the constraint. 
 Thus the objective function $\hat{\vect{R}}$ has stationary points at values of $\vect{x}$ corresponding to pure spatiotemporal sine waves.
 It can be seen from \eqref{objmat} that the maximum of all the stationary points occurs at $\text{argmax}(\hat{\vect{G}})$.
 The curvature at this stationary point, however, remains to be determined.
@@ -190,7 +185,7 @@ The curvature at this stationary point, however, remains to be determined.
 If the goal is to maximize the objective function, it must be ensured that the curvature of the function is negative at the valid stationary points. While the full bordered Hessian is given by
 
 \begin{equation} \label{lagrhessian}
-	\widetilde{\vect{H}}_\Lagr = 
+	\vect{H}_\Lagr = 
 	\begin{pmatrix}
 		\pdd{\Lagr}{\lambda^2} & \pdd{\Lagr}{\lambda\vect{x}} \\
 		\pdd{\Lagr}{\vect{x}\lambda} & \pdd{\Lagr}{\vect{x}^2}
@@ -215,20 +210,17 @@ The relevant curvature is given more simply by
 
 The curvature of the constrained objective can be characterized by the eigenvalues of this Hessian, which are given by the elements of the diagonal.
 Replacing $\lambda$ with $g_*^2$ (where $g_* = \text{max}(\hat{\vect{G}})$), a set of eigenvlaues is obtained that are negative for all values corresponding to $g_i \leq g_*$ and zero for values corresponding to $g_i = g*$.
-Therefore $\Lagr_R$ is maximized with respect to all stimulus dimensions except for $\vect{x}_*$, where there is no curvature. \par
-\hfill \newline
-It can be concluded that the stimulus which maximizes the difference between any two eDOG model instances is the spatiotemporal sine wave at which the difference in the value of the two impulse-response function, evaluated at that spatiotemporal frequency, is greatest.
+Therefore $\Lagr_R$ is maximized with respect to all stimulus dimensions except for $\vect{x}_*$, where there is no curvature.
 
-\begin{comment}
-If $c(\vect{x})$ is re-defined as the $L_1$ norm of the stimulus vector (i.e. the plane $c(\vect{x}) = ||\vect{x}||_1 = \sum_n{|x_n|} - 1$), then a linear system is obtained which can be solved algorithmically (e.g. Gauss-Jordan elimination) without losing the main purpose of the constraint.
-However, the plane defined by this constraint is not smooth, and therefore the equality constriant $c(\vect{x}) = \sum_n{|x_n|} - 1$ has to be split up into a set of inequality constraints \citep[ch.12, p. 306]{nocedal2006}. \yel{[This needs to be worked out further.]}
-\end{comment}
+\begin{center}
+\begin{minipage}{0.8\textwidth}
+	\textbf{Conclusion:} the stimulus which maximizes the difference between any two eDOG model instances is the spatiotemporal sine wave at which the difference in the value of the two impulse-response functions is greatest.
+\end{minipage}
+\end{center}
 
 
 \section{Temporal frequency preferences}
-\cite{mobarhan2018} have shown that an eDOG network configuration where inhibitory cortical feedback is delayed compared to excitatory feedback shifts the temporal filtering properties of dLGN relay cell responses to drifting grating stimuli from low-pass (when feedback weights are 0) to band-pass (for increasing feedback weights). 
-Presently, data is being collected for dLGN relay cell responses to a "full-field chirp" stimulus with optogenetic suppression of cortical feedback. 
-The results from \cite{mobarhan2018} suggest that the response matrix to a chirp stimulus would contain higher power at some peak temporal frequency when cortical feedback is present. 
+\cite{mobarhan2018} have shown that an eDOG network configuration where inhibitory cortical feedback is delayed compared to excitatory feedback shifts the temporal filtering properties of dLGN relay cell responses to drifting grating stimuli from low-pass (when feedback weights are 0) to band-pass (for increasing feedback weights).  
 Let $\hat{R}_r^\alpha$ represent the response of a model instance with feedback present, and $\hat{R}_r^\beta$ represent the response of a model instance without feedback.
 The corresponding impulse-response functions are given by
 
@@ -246,11 +238,22 @@ And the stimulus which maximally separates the two responses is the sine wave po
 
 \yel{[depictions of the impulse-response matrices, their difference, and the optimal stimulus will go here]}
 
+\begin{comment}
+Presently, data is being collected for dLGN relay cell responses to a "full-field chirp" stimulus with optogenetic suppression of cortical feedback. 
+The results from \cite{mobarhan2018} suggest that the response matrix to a chirp stimulus would contain higher power at some peak temporal frequency when cortical feedback is present.
+\end{comment}
+
 
 \section{Response nonlinearities}
 \yel{[...]}
 
 In cases where the system of equations given by $\nabla \Lagr(\vect{x},\bm{\lambda}) = \vect{0}$ cannot be solved analytically, a numerical approach must be adopted for optimization.
+
+\begin{comment}
+If $c(\vect{x})$ is re-defined as the $L_1$ norm of the stimulus vector (i.e. the plane $c(\vect{x}) = ||\vect{x}||_1 = \sum_n{|x_n|} - 1$), then a linear system is obtained which can be solved algorithmically (e.g. Gauss-Jordan elimination) without losing the main purpose of the constraint.
+However, the plane defined by this constraint is not smooth, and therefore the equality constriant $c(\vect{x}) = \sum_n{|x_n|} - 1$ has to be split up into a set of inequality constraints \citep[ch.12, p. 306]{nocedal2006}. \yel{[This needs to be worked out further.]}
+\end{comment}
+
 
 \section{Newton optimization} \label{newtonmethod}
 In order to find the roots of a function $f(x)$, it is observed that, for $x$ sufficiently close, the root a line tangent to $f(x)$, $x^{(0)}$, is closer to the true root of $f$ than $x$ itself. 
@@ -337,16 +340,16 @@ This method should be implemented even when the algorithm successfully terminate
 The following convention for the gradient ($\nabla$), Jacobian ($\vect{J}$), and Hessian($\vect{H}$) of a function $f: \R^n \rightarrow \R$ is adopted
 
 \begin{align}
-	\pd{f(\vect{x})}{\vect{x}} := \quad \nabla f & = 
+	& \pd{f(\vect{x})}{\vect{x}} := \quad \nabla f = 
 	\begin{pmatrix}
 		\pd{f(\vect{x})}{x_1} & \pd{f(\vect{x})}{x_2} & \cdots & \pd{f(\vect{x})}{x_n}
 	\end{pmatrix}^{T} \label{gradient} \\[1em]
-	\vect{J}_f & = 
+	& \vect{J}_f = 
 	\begin{pmatrix}
 		\pd{f(\vect{x})}{x_1} & \pd{f(\vect{x})}{x_2} & \cdots & \pd{f(\vect{x})}{x_n}
 	\end{pmatrix} \label{jacobian} \\[1em]
-	\vect{H}_f & = \pd{}{\vect{x}} \left( \pd{f(\vect{x})}{\vect{x}} \right) \nonumber \\
-	& = \vect{J}_f(\nabla f)^{T} \label{hessian}
+	& \vect{H}_f = \pd{}{\vect{x}} \left( \pd{f(\vect{x})}{\vect{x}} \right) 
+	= \vect{J}_f(\nabla f)^{T} \label{hessian}
 \end{align}	
 
 \subsection{Identities for gradients of vectorized scalar forms}
