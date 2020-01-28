@@ -155,5 +155,52 @@ def _optimization_progress_3Dplot(optimizer, obj_func=None, ax=None):
                )
 
 
+def test_himmelblau_newton_optimization(x0, **kwargs):
+    """
+    A test of Newton optimization using Himmelblau's function.
+    
+    Parameters
+    ----------
+    x0 : ndarray
+        numpy array with initial x, y values
+        
+    Returns
+    -------
+    out : object
+        the Newton iterator object
+        
+    Notes
+    -----
+    **kwargs passed to Newton.__init__
+    """
+    from mpl_toolkits.mplot3d import Axes3D
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    
+    xs, ys = np.meshgrid(np.arange(-10,10), np.arange(-10,10))
+    zs = himmelblau([xs, ys])
+    
+    ax.plot_surface(xs, ys, zs, cmap='jet', alpha=.5)
+    ax.axes.set_xlim3d(left=xs.min(), right=xs.max())
+    ax.axes.set_ylim3d(bottom=ys.min(), top=ys.max())
+    ax.axes.set_zlim3d(bottom=zs.min(), top=zs.max())
+    ax.scatter(x0[0], x0[1], himmelblau(x0), s=50, c='green')
+    
+    optimizer = Newton(himmelblau_gradient, 
+                       himmelblau_hessian, 
+                       x0, 
+                       iter_func=optimization_progress_3Dplot, 
+                       iter_func_args={'ax': ax, 'func': himmelblau},
+                       **kwargs
+                       )
+    optimizer.iterate()
+    
+    ax.scatter(optimizer.x[0], 
+               optimizer.x[1], 
+               himmelblau(optimizer.x), 
+               s=50, 
+               c='red'
                )
+    
+    return optimizer
 
