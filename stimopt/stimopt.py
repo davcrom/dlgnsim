@@ -203,4 +203,60 @@ def test_himmelblau_newton_optimization(x0, **kwargs):
                )
     
     return optimizer
+    
+
+def compute_responsegradient_ft(network, neuron, set_stimulus=False):
+    """
+    Compute the response gradient of a PyLGN neuron w.r.t. the stimulus pixel
+    values.
+    
+    Parameters
+    ----------
+    network : pylgn.Network
+    
+    neuron : str, pylgn.Neuron
+        if string, name of neuron type will be used to fetch appropriate PyLGN 
+        neuron object
+        
+    specify_stimulus : bool
+        if True, gradient is computed at point specified by network.stimulus.ft 
+        
+    out : ndarray
+    """
+    
+    if isinstance(neuron, str):
+        [neuron] = networks.get_neuron(neuron, network)
+    
+    if not neuron.irf_ft_is_computed:
+        network.compute_irf_ft(neuron)
+    
+    gradient = 2 * neuron.irf_ft.magnitude ** 2
+    
+    if set_stimulus:
+        gradient = np.multiply(gradient, network.stimulus.ft)
+    
+    return np.ravel(gradient)
+    
+    
+def compute_responsehessian_ft(network, neuron):
+    """
+    Compute the second derivative matrix of the response of a PyLGN neuron 
+    w.r.t. the stimulus pixel values.
+    
+    Parameters
+    ----------
+    network : pylgn.Network
+    
+    neuron : str, pylgn.Neuron
+        if string, name of neuron type will be used to fetch appropriate PyLGN 
+        neuron object
+        
+    out : ndarray
+    """
+    
+    diagonal = compute_responsegradient_ft(network, neuron, set_stimulus=False)
+    
+    return np.diag(diagonal)
+  
+
 
