@@ -27,7 +27,7 @@ def create_staticnetwork(params=None):
     # network
     network = pylgn.Network()
     integrator = network.create_integrator(
-        nt=params['nt'], 
+        nt=0, 
         nr=params['nr'], 
         dt=params['dt'], 
         dr=params['dr']
