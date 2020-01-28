@@ -123,6 +123,36 @@ class Newton(object):
         return
 
 
+def _optimization_progress_3Dplot(optimizer, obj_func=None, ax=None):
+    """
+    Plot point representing progress of optimization of an objective function
+    f: R^2 -> R.
+    
+    Parameters
+    ----------
+    optimizer : object
+        the active optimizer object instance
+        
+    obj_fun : callable
+        the objective function
+        
+    ax : matplotlib.axes._subplots.Axes3DSubplot
+        an existing 3D axis on which to draw the point
+    """
+    if not isinstance(obj_func, callable):
+        raise ValueError("objective function must be callable")
+    
+    if ax is None:
+        from mpl_toolkits.mplot3d import Axes3D
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')
+    
+    ax.scatter(optimizer.x[0], 
+               optimizer.x[1], 
+               func(optimizer.x), 
+               alpha=.5, 
+               c='black'
+               )
 
 
                )
