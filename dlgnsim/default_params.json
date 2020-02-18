@@ -26,7 +26,7 @@
 "delay_rc_ex":	{"value": 5.0, "unit": "ms"}, 
 "w_rc_in": 	1.0, 
 "A_rc_in": 	-0.6, 
-"a_rc_in": 	{"value": -0.9, "unit": "deg"},
+"a_rc_in": 	{"value": 0.9, "unit": "deg"},
 "tau_rc_in":	{"value": 5.0, "unit": "ms"},
 "delay_rc_in":	{"value": 30.0, "unit": "ms"},
 "w_cr":		1.0
